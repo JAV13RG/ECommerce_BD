@@ -1,0 +1,13 @@
+const mongoose = require('mongoose');
+
+//Estructura del modelo de producto
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true }, //Nombre del producto
+  description: { type: String }, //Descripción del producto
+  price: { type: Number, required: true },  //Precio del producto
+  image: { type: String }, //URL de la imagen del producto
+  category: { type: String }, //Categoría del producto
+  stock: { type: Number, default: 0 } //Cantidad en stock del producto
+}, { timestamps: true });
+
+module.exports = mongoose.model('Product', productSchema);

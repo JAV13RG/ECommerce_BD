@@ -1,11 +1,11 @@
 const Order = require('../models/order');
 //Crear un nuevo pedido
 exports.createOrder = async (req, res) => {
-    const { user, products, totalPrice } = req.body;
+    const { products, totalPrice } = req.body;
 
     try {
         const newOrder = new Order({
-            user,
+            user: req.user._id, // Obtener el ID del usuario desde el middleware de autenticación
             products,
             totalPrice
         });
@@ -47,5 +47,15 @@ exports.updateOrderStatus = async (req, res) => {
         res.json(updatedOrder);
     } catch (error) {
         res.status(500).json({ message: 'Error al actualizar el estado del pedido', error });
+    }
+};
+
+// Obtener los pedidos de un usuario
+exports.getMyOrders = async (req, res) => {
+    try {
+        const orders = await Order.find({ user: req.user._id }).populate('products.product', 'name price image');
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener los pedidos', error });
     }
 };

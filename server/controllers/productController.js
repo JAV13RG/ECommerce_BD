@@ -1,6 +1,29 @@
 const Product = require('../models/product');
 
-// POST: Crear un nuevo producto
+//Crear un nuevo producto
+exports.createProduct = async (req, res) => {
+  try {
+    const { name, description, price, image, category, designType, tags, stock } = req.body;
+
+    const newProduct = new Product({
+      name,
+      description,
+      price,
+      image,
+      category,
+      designType,
+      tags,
+      stock
+    });
+
+    const savedProduct = await newProduct.save();
+    res.status(201).json(savedProduct);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al crear el producto', details: error });
+  }
+};
+
+// Obtener todos los productos
 exports.getAllProducts = async (req, res) => {
   try {
     const { category, designType, tags, sortBy, sortOrder, page, limit } = req.query;

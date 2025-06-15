@@ -1,15 +1,24 @@
 const mongoose = require('mongoose');
 
-//Estructura del modelo de producto
 const productSchema = new mongoose.Schema({
-  name: { type: String, required: true }, //Nombre del producto
-  description: { type: String }, //Descripción del producto
-  price: { type: Number, required: true },  //Precio del producto
-  image: { type: String }, //URL de la imagen del producto
-  category: { type: String }, //Categoría principal del producto
-  designType: { type: String }, //Tipo de diseño del producto(anime, caricatura, dibujo, etc.)
-  tags: [String], //Etiquetas del producto (Naruto, Kimetsu, Shingeki, etc.)
-  stock: { type: Number, default: 0 } //Cantidad en stock del producto
+  name: { type: String, required: true }, // Nombre del producto
+  description: { type: String }, // Descripción
+  price: { type: Number, required: true }, // Precio
+  image: { type: String }, // URL de la imagen
+
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }, // Poleras / Polerones
+  subcategory: { type: mongoose.Schema.Types.ObjectId, ref: 'Subcategory' }, // Piqué, Polo, etc.
+
+  designType: { type: String }, // anime, caricatura, dibujo...
+  tags: [String], // Naruto, Shingeki, etc.
+
+  colors: [// colores disponibles con stock
+    {
+      color: { type: mongoose.Schema.Types.ObjectId, ref: 'Color' },
+      stock: { type: Number, default: 0 }
+    }
+  ]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Product', productSchema);
+

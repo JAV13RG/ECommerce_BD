@@ -3,7 +3,7 @@ const Product = require('../models/product');
 //Crear un nuevo producto
 exports.createProduct = async (req, res) => {
   try {
-    const { name, description, price, image, category, designType, tags, stock } = req.body;
+    const { name, description, price, image, category, subcategory, designType, tags, colors } = req.body;
 
     const newProduct = new Product({
       name,
@@ -11,9 +11,10 @@ exports.createProduct = async (req, res) => {
       price,
       image,
       category,
+      subcategory,
       designType,
       tags,
-      stock
+      colors
     });
 
     const savedProduct = await newProduct.save();
@@ -26,16 +27,25 @@ exports.createProduct = async (req, res) => {
 // Obtener todos los productos
 exports.getAllProducts = async (req, res) => {
   try {
-    const { category, designType, tags, sortBy, sortOrder, page, limit } = req.query;
-
-    const filter = {};
+    const { category, subcategory, designType, tags, colors, disponible, sortBy, sortOrder, page, limit } = req.query;
 
     // Filtros
+    const filter = {};
     if (category) filter.category = category;
+    if (subcategory) filter.subcategory = subcategory;
     if (designType) filter.designType = designType;
     if (tags) {
       const tagArray = tags.split(',');
       filter.tags = { $in: tagArray };
+    }
+
+    if (colors) {
+      filter['colors.color'] = colors;
+    }
+
+    // Disponibilidad
+    if (disponible == 'true') {
+      filter['colors.stock'] = { $gt: 0 };
     }
 
     // Ordenamiento
@@ -49,8 +59,11 @@ exports.getAllProducts = async (req, res) => {
     const pageSize = Number(limit) || 10;
     const skip = (pageNumber - 1) * pageSize;
 
-    // Búsqueda en DB
+    // Búsqueda en DB con populate
     const products = await Product.find(filter)
+      .populate('category', 'name')
+      .populate('subcategory', 'name')
+      .populate('colors.color', 'name')
       .sort(sort)
       .skip(skip)
       .limit(pageSize);
@@ -69,7 +82,6 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
-
 //CRUD
 //Obtener un producto por id
 exports.getProductById = async (req, res) => {
@@ -84,7 +96,7 @@ exports.getProductById = async (req, res) => {
 
 //Actualizar un producto
 exports.updateProduct = async (req, res) => {
-  const { name, description, price, image, category, designType, tags, stock } = req.body;
+  const { name, description, price, image, category, subcategory, designType, tags, colors } = req.body;
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ error: 'Producto no encontrado' });
@@ -94,14 +106,15 @@ exports.updateProduct = async (req, res) => {
     product.price = price || product.price;
     product.image = image || product.image;
     product.category = category || product.category;
+    product.subcategory = subcategory || product.subcategory;
     product.designType = designType || product.designType;
     product.tags = tags || product.tags;
-    product.stock = stock ?? product.stock;
+    product.colors = colors || product.colors;
 
     const updated = await product.save();
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar producto', error });
+    res.status(500).json({ error: 'Error al actualizar producto', details: error });
   }
 };
 

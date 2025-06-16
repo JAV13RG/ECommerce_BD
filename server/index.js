@@ -40,3 +40,15 @@ app.use('/api/users', userRoutes);
 //Pedidos
 const orderRoutes = require('./routes/orderRoutes');
 app.use('/api/orders', orderRoutes);
+
+//Categorías
+const categoryRoutes = require('./routes/categoryRoutes');
+app.use('/api/categories', categoryRoutes);
+
+//Subcategorías
+const subcategoryRoutes = require('./routes/subcategoryRoutes');
+app.use('/api/subcategories', subcategoryRoutes);
+
+//Colores
+const colorRoutes = require('./routes/colorRoutes');
+app.use('/api/colors', colorRoutes);

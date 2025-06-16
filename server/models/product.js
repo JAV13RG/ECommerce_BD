@@ -14,8 +14,15 @@ const productSchema = new mongoose.Schema({
 
   colors: [// colores disponibles con stock
     {
-      color: { type: mongoose.Schema.Types.ObjectId, ref: 'Color' },
-      stock: { type: Number, default: 0 }
+      color: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Color',
+        required: true
+      },
+      stock: {
+        type: Number,
+        default: 0
+      }
     }
   ]
 }, { timestamps: true });

@@ -2,6 +2,7 @@ const Product = require('../models/product');
 
 //Crear un nuevo producto
 exports.createProduct = async (req, res) => {
+  
   try {
     const { name, description, price, image, category, subcategory, designType, tags, colors } = req.body;
 
@@ -9,17 +10,18 @@ exports.createProduct = async (req, res) => {
       name,
       description,
       price,
-      image,
       category,
       subcategory,
-      designType,
+      colors,
+      image,
       tags,
-      colors
+      designType
     });
 
     const savedProduct = await newProduct.save();
     res.status(201).json(savedProduct);
   } catch (error) {
+    console.error('Error al crear el producto:', error);
     res.status(500).json({ message: 'Error al crear el producto', details: error });
   }
 };
@@ -96,9 +98,21 @@ exports.getProductById = async (req, res) => {
 
 //Actualizar un producto
 exports.updateProduct = async (req, res) => {
-  const { name, description, price, image, category, subcategory, designType, tags, colors } = req.body;
+  const { name, description, price, category, subcategory, colors, image, tags, designType } = req.body;
+  if (colors) {
+  if (!Array.isArray(colors) || colors.length === 0) {
+    return res.status(400).json({ error: 'Debes especificar al menos un color con su stock' });
+  }
+
+  for (let entry of colors) {
+    if (!entry.color || typeof entry.stock !== 'number') {
+      return res.status(400).json({ error: 'Cada color debe tener un ID y un stock numérico' });
+    }
+  }
+}
   try {
     const product = await Product.findById(req.params.id);
+
     if (!product) return res.status(404).json({ error: 'Producto no encontrado' });
 
     product.name = name || product.name;

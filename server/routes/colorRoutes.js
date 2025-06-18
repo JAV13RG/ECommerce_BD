@@ -1,11 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const colorController = require('../controllers/colorController');
+
+const {
+    createColor,
+    getAllColors,
+    updateColor,
+    deleteColor
+} = require('../controllers/colorController');
+
 const { protect, admin } = require('../middleware/authMiddleware');
 
-router.get('/', colorController.getAllColors);
-router.post('/', protect, admin, colorController.createColor);
-router.put('/:id', protect, admin, colorController.updateColor);
-router.delete('/:id', protect, admin, colorController.deleteColor);
+router.get('/', getAllColors);
+router.post('/', protect, admin, createColor);
+router.put('/:id', protect, admin, updateColor);
+router.delete('/:id', protect, admin, deleteColor);
 
 module.exports = router;

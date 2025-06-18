@@ -1,0 +1,39 @@
+#ADMIN
+    Usuario Admin:
+        admin@tienda.cl
+    Clave
+        admin123
+    Token
+        eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODRhNzM3MTU1M2IwMjBiOTFhNjY5YzQiLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE3NTAyMDI1OTAsImV4cCI6MTc1MDgwNzM5MH0.UZot6XlyJOl6V88ePdqyEh3rSznKO0AD0WKNQ8mM870
+
+#Cliente
+    Cliente prueba
+    6852662f3836005abd946279
+    cliente@mail.com
+    user123
+    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODUyNjYyZjM4MzYwMDVhYmQ5NDYyNzkiLCJpc0FkbWluIjpmYWxzZSwiaWF0IjoxNzUwMjMwODE0LCJleHAiOjE3NTA4MzU2MTR9.adI-JFz2icw0Riwilwh1AHaNV745BHbG2wxmO0RLNIo
+
+#Categorias
+    Poleras
+        - ID:
+            68525ed50bba98330fc186fb
+    Polerones:
+        - ID:
+            68525ec80bba98330fc186f7
+    Categoria2
+        - ID:
+            68525edf0bba98330fc186ff
+
+#Subcategorias
+    Basica:
+        - ID:
+            685260320bba98330fc18703
+    Polo:
+        - ID:
+            6852606c0bba98330fc18706
+
+#Color
+    Blanco:
+        6852621c0bba98330fc1870b
+    Negro:
+        685262660bba98330fc1870f

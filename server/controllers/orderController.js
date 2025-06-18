@@ -1,4 +1,6 @@
 const Order = require('../models/order');
+const Product = require('../models/product');
+
 //Crear un nuevo pedido
 exports.createOrder = async (req, res) => {
     const { products, shippingAdress } = req.body;
@@ -12,18 +14,21 @@ exports.createOrder = async (req, res) => {
         !shippingAdress ||
         !shippingAdress.street ||
         !shippingAdress.city ||
-        shippingAdress.region ||
+        !shippingAdress.region ||
         !shippingAdress.postalCode
     ) {
         return res.status(400).json({ message: 'La dirección de envío está incompleta' });
     }
 
     try {
+        console.log('Datos recibidos:', products, shippingAdress);
+
         //Calculo dinamico de la totalidad del pedido
         let totalPrice = 0;
         for (const item of products) {
             const dbProduct = await Product.findById(item.product);
             if (!dbProduct) {
+                console.log('Producto no encontrado:', item.product);
                 return res.status(400).json({ message: `Producto con ID: ${item.product} no existe` });
             }
 
@@ -44,6 +49,7 @@ exports.createOrder = async (req, res) => {
 
         res.status(201).json(populatedOrder);
     } catch (error) {
+        console.error('Error al crear el pedido:', error);
         res.status(500).json({ message: 'Error al crear el pedido', error });
     }
 };
@@ -84,9 +90,27 @@ exports.updateOrderStatus = async (req, res) => {
 // Obtener los pedidos de un usuario
 exports.getMyOrders = async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user._id }).populate('products.product', 'name price image');
+        const orders = await Order.find({ user: req.user._id })
+            .populate('products.product', 'name price image')
+            .sort({ createdAt: -1 });
         res.json(orders);
     } catch (error) {
         res.status(500).json({ message: 'Error al obtener los pedidos', error });
     }
 };
+
+exports.markOrderAsPaid = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'Pedido no encontrado' });
+
+        order.isPaid = true;
+        order.paidAt = new Date.now();
+
+        const updated = await order.save();
+        res.json({ message: 'Pedido marcado como pagado', order: updated });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al marcar el pedido como pagado', error });
+    }
+};
+

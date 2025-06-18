@@ -1,11 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const subcategoryController = require('../controllers/subCategoryController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-router.get('/', subcategoryController.getAllSubcategories);
-router.post('/', protect, admin, subcategoryController.createSubcategory);
-router.put('/:id', protect, admin, subcategoryController.updateSubcategory);
-router.delete('/:id', protect, admin, subcategoryController.deleteSubcategory);
+const {
+    createSubcategory,
+    getAllSubcategories,
+    updateSubcategory,
+    deleteSubcategory
+} = require('../controllers/subcategoryController');
+
+//Publico
+router.get('/', getAllSubcategories);
+
+//Privado (solo administradores)
+router.post('/', protect, admin, createSubcategory);
+router.put('/:id', protect, admin, updateSubcategory);
+router.delete('/:id', protect, admin, deleteSubcategory);
 
 module.exports = router;

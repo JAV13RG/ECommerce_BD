@@ -17,17 +17,17 @@ exports.createColor = async (req, res) => {
 };
 
 //Actualizar un color
-exports.updateColor = async (req, res) => {
-    const { name } = req.body;
-
+exports.updateColor = async (req, res) => { 
     try {
-        const color = await Color.findByIdAndUpdate(
-            req.params.id,
-            { name },
-            { new: true }
-        );
+        const { name } = req.body;
+        const color = await Color.findByIdAndUpdate( req.params.id );
+        
         if (!color) return res.status(404).json({ message: 'Color no encontrado' });
-        res.json(color);
+        
+        color.name = name || color.name;
+
+        const updated = await color.save();
+        res.json(updated);
     } catch (error) {
         res.status(500).json({ message: 'Error al actualizar el color', error });
     }

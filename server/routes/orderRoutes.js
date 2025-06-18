@@ -16,3 +16,6 @@ router.put('/:id/status', protect, admin, orderController.updateOrderStatus); //
 
 //Permite que el usuario vea sus pedidos
 router.get('/my', protect, orderController.getMyOrders);
+
+//Marcar un pedido como pagado
+router.put('/:id/pay', protect, orderController.markOrderAsPaid);

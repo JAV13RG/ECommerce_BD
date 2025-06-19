@@ -5,27 +5,11 @@ const productSchema = new mongoose.Schema({
   description: { type: String }, // Descripción
   price: { type: Number, required: true }, // Precio
   image: { type: String }, // URL de la imagen
-
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }, // Poleras / Polerones
   subcategory: { type: mongoose.Schema.Types.ObjectId, ref: 'Subcategory' }, // Piqué, Polo, etc.
-
   designType: { type: String }, // anime, caricatura, dibujo...
   tags: [String], // Naruto, Shingeki, etc.
-
-  colors: [// colores disponibles con stock
-    {
-      color: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Color',
-        required: true
-      },
-      stock: {
-        type: Number,
-        default: 0
-      }
-    }
-  ]
+  colors: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Color' }], // Colores disponibles (visual)
 }, { timestamps: true });
 
 module.exports = mongoose.model('Product', productSchema);
-

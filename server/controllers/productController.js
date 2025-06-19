@@ -10,12 +10,12 @@ exports.createProduct = async (req, res) => {
       name,
       description,
       price,
+      image,
       category,
       subcategory,
-      colors,
-      image,
+      designType,
       tags,
-      designType
+      colors
     });
 
     const savedProduct = await newProduct.save();
@@ -98,22 +98,12 @@ exports.getProductById = async (req, res) => {
 
 //Actualizar un producto
 exports.updateProduct = async (req, res) => {
-  const { name, description, price, category, subcategory, colors, image, tags, designType } = req.body;
-  if (colors) {
-  if (!Array.isArray(colors) || colors.length === 0) {
-    return res.status(400).json({ error: 'Debes especificar al menos un color con su stock' });
-  }
-
-  for (let entry of colors) {
-    if (!entry.color || typeof entry.stock !== 'number') {
-      return res.status(400).json({ error: 'Cada color debe tener un ID y un stock numérico' });
-    }
-  }
-}
   try {
     const product = await Product.findById(req.params.id);
 
     if (!product) return res.status(404).json({ error: 'Producto no encontrado' });
+
+    const { name, description, price, image, category, subcategory, designType, tags, colors } = req.body;
 
     product.name = name || product.name;
     product.description = description || product.description;

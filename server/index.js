@@ -52,3 +52,7 @@ app.use('/api/subcategories', subcategoryRoutes);
 //Colores
 const colorRoutes = require('./routes/colorRoutes');
 app.use('/api/colors', colorRoutes);
+
+//Inventario
+const inventoryRoutes = require('./routes/inventoryRoutes');
+app.use('/api/inventory', inventoryRoutes);

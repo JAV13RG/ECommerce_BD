@@ -84,7 +84,6 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
-//CRUD
 //Obtener un producto por id
 exports.getProductById = async (req, res) => {
   try {
@@ -100,7 +99,6 @@ exports.getProductById = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-
     if (!product) return res.status(404).json({ error: 'Producto no encontrado' });
 
     const { name, description, price, image, category, subcategory, designType, tags, colors } = req.body;

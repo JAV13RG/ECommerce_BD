@@ -58,3 +58,4 @@ exports.deleteInventoryItem = async (req, res) => {
         res.status(500).json({ message: 'Error al eliminar el item de inventario', error: error.message });
     }
 };
+

@@ -4,55 +4,58 @@ const inventoryItem = require('../models/inventoryItem');
 
 //Crear un nuevo pedido
 exports.createOrder = async (req, res) => {
-    const { products, shippingAdress } = req.body;
-
-    //Validaciones
-    if(!products || products.length === 0) {
-        return res.status(400).json({ message: 'El pedido debe tener al menos un producto' });
-    }
-
-    if(
-        !shippingAdress ||
-        !shippingAdress.street ||
-        !shippingAdress.city ||
-        !shippingAdress.region ||
-        !shippingAdress.postalCode
-    ) {
-        return res.status(400).json({ message: 'La dirección de envío está incompleta' });
-    }
-
     try {
-        console.log('Datos recibidos:', products, shippingAdress);
+        const user = req.user._id;
+        const { product, shippingAdress } = req.body;
 
-        //Calculo dinamico de la totalidad del pedido
-        let totalPrice = 0;
-        for (const item of products) {
-            const dbProduct = await Product.findById(item.product);
-            if (!dbProduct) {
-                console.log('Producto no encontrado:', item.product);
-                return res.status(400).json({ message: `Producto con ID: ${item.product} no existe` });
-            }
-
-            totalPrice += dbProduct.price * item.quantity;
+        if (
+            !shippingAdress ||
+            !shippingAdress.street ||
+            !shippingAdress.city ||
+            !shippingAdress.region ||
+            !shippingAdress.postalCode
+        ) {
+            return res.status(400).json({ message: 'Datos de envío no proporcionados' });
         }
 
+        let totalPrice = 0;
+        const validatedProducts = [];
+
+        for (const item of product) {
+            const { product: productId, quantity, type, color, size } = item;
+
+            const dbProduct = await Product.findById(productId);
+            if (!dbProduct) return res.status(404).json({ message: 'Producto no encontrado' });
+
+            const inventory = await inventoryItem.findOne({ type, color, size });
+
+            if (!inventory || inventory.stock < quantity) {
+                return res.status(400).json({ message: `No hay stock para ${type} ${color} ${size}` });
+            }
+        }
+
+        // Descontar stock
+        inventory.stock -= quantity;
+        await inventory.save();
+
+        validatedProducts.push({
+            product: dbProduct._id,
+            quantity
+        });
+
+        totalPrice += dbProduct.price * quantity;
+
         const newOrder = new Order({
-            user: req.user._id, // Obtener el ID del usuario desde el middleware de autenticación
-            products,
+            user,
+            products: validatedProducts,
+            shippingAdress,
             totalPrice,
-            shippingAdress
+            status: 'pending'
         });
 
         const savedOrder = await newOrder.save();
-
-        //Buscar el pedido ya guardado (.populate)
-        const populatedOrder = await Order.findById(savedOrder._id).populate('products.product', 'name price image');
-
-        res.status(201).json(populatedOrder);
-    } catch (error) {
-        console.error('Error al crear el pedido:', error);
-        res.status(500).json({ message: 'Error al crear el pedido', error });
-    }
+        res.status(201).json(savedOrder);
+    } catch (error) {}
 };
 
 // Obtener todos los pedidos (admin)

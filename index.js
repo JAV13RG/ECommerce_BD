@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose'); //BD
 const cors = require('cors');
-
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -28,10 +28,6 @@ app.get('/', (req, res) => {
   res.send('API funcionando correctamente');
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor backend corriendo en el puerto ${PORT}`);
-});
-
 //Conexion de rutas al servidor
 //Usuario
 const userRoutes = require('./routes/userRoutes');
@@ -56,3 +52,10 @@ app.use('/api/colors', colorRoutes);
 //Inventario
 const inventoryRoutes = require('./routes/inventoryRoutes');
 app.use('/api/inventory', inventoryRoutes);
+
+// Manejo de errores
+app.use(errorHandler);
+
+app.listen(PORT, () => {
+  console.log(`Servidor backend corriendo en el puerto ${PORT}`);
+});

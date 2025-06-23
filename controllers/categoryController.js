@@ -6,7 +6,7 @@ exports.getAllCategories = async (req, res) => {
         const categories = await Category.find();
         res.json(categories);
     } catch (error) {
-        res.status(500).json({ message: 'Error en la petición', error });
+        next(error);
     }
 };
 
@@ -21,7 +21,7 @@ exports.createCategory = async (req, res) => {
         const savedCategory = await newCategory.save();
         res.status(201).json(savedCategory);
     } catch (error) {
-        res.status(500).json({ message: 'Error al crear la categoría', error });
+        next(error);
     }
 };
 
@@ -33,7 +33,7 @@ exports.updateCategory = async (req, res) => {
         if (!category) return res.status(404).json({ message: 'Categoria no encontrada' });
         res.json(category);
     } catch (error) {
-        res.status(500).json({ message: 'Error al actualizar la categoría', error });
+        next(error);
     }
 };
 
@@ -44,6 +44,6 @@ exports.deleteCategory = async (req, res) => {
         if (!category) return res.status(404).json({ message: 'Categoria no encontrada' });
         res.json({ message: 'Categoria eliminada exitosamente' });
     } catch (error) {
-        res.status(500).json({ message: 'Error al eliminar la categoría', error });
+        next(error);
     }
 };

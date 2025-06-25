@@ -1,6 +1,5 @@
 const Order = require('../models/order');
 const Product = require('../models/product');
-const inventoryItem = require('../models/inventoryItem');
 
 //Crear un nuevo pedido
 exports.createOrder = async (req, res) => {

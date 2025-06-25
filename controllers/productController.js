@@ -2,7 +2,7 @@ const Product = require('../models/product');
 
 //Crear un nuevo producto
 exports.createProduct = async (req, res) => {
-  
+
   try {
     const { name, description, price, image, category, subcategory, designType, tags, colors } = req.body;
 
@@ -29,25 +29,15 @@ exports.createProduct = async (req, res) => {
 // Obtener todos los productos
 exports.getAllProducts = async (req, res) => {
   try {
-    const { category, subcategory, designType, tags, colors, disponible, sortBy, sortOrder, page, limit } = req.query;
+    const { category, subcategory, tags, sortBy, sortOrder, page, limit } = req.query;
 
     // Filtros
     const filter = {};
     if (category) filter.category = category;
     if (subcategory) filter.subcategory = subcategory;
-    if (designType) filter.designType = designType;
     if (tags) {
       const tagArray = tags.split(',');
       filter.tags = { $in: tagArray };
-    }
-
-    if (colors) {
-      filter['colors.color'] = colors;
-    }
-
-    // Disponibilidad
-    if (disponible == 'true') {
-      filter['colors.stock'] = { $gt: 0 };
     }
 
     // Ordenamiento
@@ -65,7 +55,6 @@ exports.getAllProducts = async (req, res) => {
     const products = await Product.find(filter)
       .populate('category', 'name')
       .populate('subcategory', 'name')
-      .populate('colors.color', 'name')
       .sort(sort)
       .skip(skip)
       .limit(pageSize);
@@ -80,7 +69,8 @@ exports.getAllProducts = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ error: 'Error al obtener productos', details: err });
+    console.error('Error en getAllProducts:', err);
+    res.status(500).json({ error: 'Error al obtener productos', details: err.message });
   }
 };
 

@@ -40,18 +40,19 @@ app.use('/api/orders', orderRoutes);
 //Categorías
 const categoryRoutes = require('./routes/categoryRoutes');
 app.use('/api/categories', categoryRoutes);
+require('./models/category');
 
 //Subcategorías
 const subcategoryRoutes = require('./routes/subcategoryRoutes');
 app.use('/api/subcategories', subcategoryRoutes);
+require('./models/subcategory');
 
-//Colores
-const colorRoutes = require('./routes/colorRoutes');
-app.use('/api/colors', colorRoutes);
+// Variantes de los productos
+const productVariantRoutes = require('./routes/productVariantRoutes');
+app.use('/api/variants', productVariantRoutes);
 
-//Inventario
-const inventoryRoutes = require('./routes/inventoryRoutes');
-app.use('/api/inventory', inventoryRoutes);
+// Colores
+require('./models/color');
 
 // Manejo de errores
 app.use(errorHandler);

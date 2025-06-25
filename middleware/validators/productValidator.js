@@ -1,8 +1,9 @@
 const { body } = require('express-validator');
 
-exports.productValidatorRules = [
+// Validacion de producto
+exports.validateProduct = [
     body('name').notEmpty().withMessage('El nombre del producto es obligatorio'),
-    body('price').isNumeric().withMessage('El precio debe ser un número'),
-    body('category').notEmpty().withMessage('La categoría es obligatoria'),
-    body('description').optional().isLength({ max: 500 }).withMessage('La descripción no puede exceder los 500 caracteres')
+    body('category').notEmpty().withMessage('La categoría del producto es obligatoria'),
+    body('subcategory').notEmpty().withMessage('La subcategoría del producto es obligatoria'),
+    body('tags').isArray().withMessage('Los tags deben ser un arreglo')
 ];

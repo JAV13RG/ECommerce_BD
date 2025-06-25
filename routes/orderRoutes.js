@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware');
+const { validateOrder } = require('../middleware/validators/orderValidator');
+const validate = require('../middleware/validators/validate');
 
-router.post('/', protect, orderController.createOrder); // Crear un nuevo pedido
+router.post('/', protect, validateOrder, validate, orderController.createOrder); // Crear un nuevo pedido
 router.get('/', protect, orderController.getAllOrders); // Obtener todos los pedidos
 router.put('/:id/status', protect, admin, orderController.updateOrderStatus); // Actualizar el estado de un pedido (solo administradores)
 

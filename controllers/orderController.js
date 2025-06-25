@@ -1,12 +1,16 @@
 const Order = require('../models/order');
-const Product = require('../models/product');
+const ProductVariant = require('../models/productVariant');
 
 //Crear un nuevo pedido
 exports.createOrder = async (req, res) => {
     try {
         const user = req.user._id;
-        const { product, shippingAdress } = req.body;
+        const { products, shippingAdress } = req.body;
 
+        // Validaciones
+        if (!products || !products.length) {
+            return res.status(400).json({ message: 'El pedido debe contener al menos un producto' });
+        }
         if (
             !shippingAdress ||
             !shippingAdress.street ||
@@ -20,41 +24,41 @@ exports.createOrder = async (req, res) => {
         let totalPrice = 0;
         const validatedProducts = [];
 
-        for (const item of product) {
-            const { product: productId, quantity, type, color, size } = item;
+        for (const item of products) {
+            const { variant, quantity } = item;
 
-            const dbProduct = await Product.findById(productId);
-            if (!dbProduct) return res.status(404).json({ message: 'Producto no encontrado' });
+            const dbVariant = await ProductVariant.findById(variant);
+            if (!dbVariant) return res.status(404).json({ message: 'Variante del producto no encontrado' });
 
-            const inventory = await inventoryItem.findOne({ type, color, size });
-
-            if (!inventory || inventory.stock < quantity) {
+            if (dbVariant.stock < quantity) {
                 return res.status(400).json({ message: `No hay stock para ${type} ${color} ${size}` });
             }
+
+            // Descontar stock
+            dbVariant.stock -= quantity;
+            await dbVariant.save();
+
+            validatedProducts.push({
+                variant: dbVariant._id,
+                quantity
+            });
+
+            totalPrice += dbVariant.price * quantity;
         }
-
-        // Descontar stock
-        inventory.stock -= quantity;
-        await inventory.save();
-
-        validatedProducts.push({
-            product: dbProduct._id,
-            quantity
-        });
-
-        totalPrice += dbProduct.price * quantity;
 
         const newOrder = new Order({
             user,
             products: validatedProducts,
             shippingAdress,
-            totalPrice,
-            status: 'pending'
+            totalPrice
         });
 
         const savedOrder = await newOrder.save();
         res.status(201).json(savedOrder);
-    } catch (error) {}
+    } catch (error) {
+        console.error('Error al crear el pedido:', error);
+        res.status(500).json({ message: 'Error al crear el pedido', error });
+    }
 };
 
 // Obtener todos los pedidos (admin)

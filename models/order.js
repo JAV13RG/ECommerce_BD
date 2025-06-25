@@ -23,9 +23,7 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ['Pendiente', 'En Proceso', 'Enviado', 'Cancelado'], // Estado de la orden
         default: 'Pendiente' // Estado por defecto
-    },
-    isPaid: { type: Boolean, default: false }, // Indica si la orden ha sido pagada
-    paidAt: { type: Date }, // Fecha de pago
+    }
 }, { timestamps: true }); //crea campos de fecha de creación y actualización automáticamente
 
 // Exporta el modelo de orden para su uso en otras partes de la aplicación

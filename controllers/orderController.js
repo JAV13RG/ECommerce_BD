@@ -1,4 +1,5 @@
 const Order = require('../models/order');
+const product = require('../models/product');
 const ProductVariant = require('../models/productVariant');
 
 //Crear un nuevo pedido
@@ -31,7 +32,7 @@ exports.createOrder = async (req, res) => {
             if (!dbVariant) return res.status(404).json({ message: 'Variante del producto no encontrado' });
 
             if (dbVariant.stock < quantity) {
-                return res.status(400).json({ message: `No hay stock para ${type} ${color} ${size}` });
+                return res.status(400).json({ message: 'No hay stock suficiente para el pedidio' });
             }
 
             // Descontar stock
@@ -105,19 +106,3 @@ exports.getMyOrders = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener los pedidos', error });
     }
 };
-
-exports.markOrderAsPaid = async (req, res) => {
-    try {
-        const order = await Order.findById(req.params.id);
-        if (!order) return res.status(404).json({ message: 'Pedido no encontrado' });
-
-        order.isPaid = true;
-        order.paidAt = new Date.now();
-
-        const updated = await order.save();
-        res.json({ message: 'Pedido marcado como pagado', order: updated });
-    } catch (error) {
-        res.status(500).json({ message: 'Error al marcar el pedido como pagado', error });
-    }
-};
-

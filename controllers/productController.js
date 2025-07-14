@@ -1,4 +1,5 @@
 const Product = require('../models/product');
+const cloudinary = require('../utils/cloudinary');
 
 //Crear un nuevo producto
 exports.createProduct = async (req, res) => {
@@ -120,5 +121,49 @@ exports.deleteProduct = async (req, res) => {
     res.json({ message: 'Producto eliminado correctamente' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar producto', error });
+  }
+};
+
+//Subir imagen
+exports.uploadImage = async (req, res) => {
+  console.log('Archivo recibido:', req.file);
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se ha subido ninguna imagen' });
+    }
+
+    const imageUrl = req.file.path;
+    res.status(200).json({ imageUrl });
+  } catch (error) {
+    console.error('Error al subir imagen:', error);
+    res.status(500).json({ error: 'Error interno', details: error });
+  }
+};
+
+//Agregar imagenes a un producto
+exports.addImagesToProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    //Buscar el producto por su id
+    const product = await Product.findById(id);
+    if (!product) return res.status(404).json({error: "Producto no encontrado"});
+
+    //Verificar si los archivos fueron recibidos
+    if (!req.files || req.files.length === 0)
+      return res.status(400).json({ error: 'No se ha subido ninguna imagen' });
+
+    //Obtener las URLs de las imágenes subidas
+    const imageUrls = req.files.map(file => file.path);
+
+    //Agregar imagenes al array existente del producto
+    product.image.push(...imageUrls);
+    await product.save();
+
+    res.json({ message: 'Imagenes agregadas correctamente', image: product.images });
+  } catch {
+    console.error("Error al subir las imagenes");
+    res.status(500).json({ error: 'Error interno', details: error });
   }
 };

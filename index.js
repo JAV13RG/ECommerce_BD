@@ -1,3 +1,6 @@
+//Conexion y estructura de la base de datos
+require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose'); //BD
 const cors = require('cors');
@@ -12,9 +15,6 @@ app.use(express.json());
 
 const productRoutes = require('./routes/productRoutes');
 app.use('/api/products', productRoutes);
-
-//Conexion y estructura de la base de datos
-require('dotenv').config();
 
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,

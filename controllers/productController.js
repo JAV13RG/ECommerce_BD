@@ -1,4 +1,6 @@
+const upload = require('../middleware/uploadImage');
 const Product = require('../models/product');
+const { cloudinary, uploadToCloudinary } = require('../utils/cloudinary'); 
 
 //Crear un nuevo producto
 exports.createProduct = async (req, res) => {
@@ -131,4 +133,60 @@ exports.deleteProduct = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar producto', error });
   }
+};
+
+//Subir la imagen y agregarla al producto
+exports.addImagesToProduct = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'No se han subido imágenes' });
+    }
+
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Producto no encontrado' });
+
+    const uploadedImages = await Promise.all(
+      req.files.map(file => uploadToCloudinary(file))
+    );
+
+    if (product.images.length + uploadedImages.length > 10) {
+      return res.status(400).json({ message: 'No se pueden agregar más de 10 imágenes' });
+    }
+
+    const imageUrls = uploadedImages.map(img => img.secure_url);
+
+    product.images.push(...imageUrls);
+    await product.save();
+
+    res.status(200).json({
+      message: 'Imágenes agregadas correctamente', 
+      images: product.images
+    });
+    
+  } catch (error) {
+    console.error('Error al agregar imágenes al producto:', error);
+    res.status(500).json({ message: 'Error al agregar imágenes al producto', details: error });
+  }
+};
+
+exports.uploadImage = async (req, res) => {
+  try {
+    const imageUrl = require.file.path;
+    res.status(200).json({ imageUrl })
+  } catch {
+    res.status(500).json({ message: 'Error al subir la imagen' })
+  }
+};
+
+exports.removeImageFromProduct = async (req, res) => {
+  const { productId, publicId } = req.params;
+
+  const product = await Product.findById(productId);
+  if (!product) return res.status(404).json({ message: 'Producto no encontrado' });
+
+  product.images = product.images.filter(image => image.publicId !== publicId);
+  await cloudinary.uploader.destroy(publicId);
+  await product.save();
+
+  res.status(200).json({ message: 'Imagen eliminada correctamente', product });
 };

@@ -11,10 +11,14 @@ router.post('/', protect, admin, productController.createProduct);
 
 router.get('/:id', productController.getProductById);
 router.put('/:id', protect, admin, productController.updateProduct);
+
+//Eliminar un producto completo
 router.delete('/:id', protect, admin, productController.deleteProduct);
 
-router.post('/:id/images', upload.array('images', 10),productController.addImagesToProduct);
+//Eliminar una imagen específica de un producto
+router.delete('/:id/images/:publicId', protect, admin, productController.deleteProductImage);
+
+router.post('/:id/images', protect, admin, upload.array('images', 5), addImagesToProduct);
 router.post('/upload', upload.single('images'), uploadImage);
-router.delete('/image/:productId', productController.removeImageFromProduct);
 
 module.exports = router;

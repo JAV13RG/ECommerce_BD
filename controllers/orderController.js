@@ -1,12 +1,19 @@
 const Order = require('../models/order');
 const Product = require('../models/product');
 const inventoryItem = require('../models/inventoryItem');
+const Inventory = require('../models/inventory');
 
 //Crear un nuevo pedido
 exports.createOrder = async (req, res) => {
     try {
         const user = req.user._id;
-        const { product, shippingAdress } = req.body;
+        const { items, shippingAdress } = req.body;
+
+        if (!Array.isArray(items) || items.length === 0) {
+            const error = new Error('El pedido debe contener al menos un item');
+            error.status = 400;
+            throw error;
+        }
 
         if (
             !shippingAdress ||
@@ -15,47 +22,103 @@ exports.createOrder = async (req, res) => {
             !shippingAdress.region ||
             !shippingAdress.postalCode
         ) {
-            return res.status(400).json({ message: 'Datos de envío no proporcionados' });
+            const error = new Error('La direccion de envio no puede estar incompleta o vacia');
+            error.status = 400;
+            throw error;
         }
 
         let totalPrice = 0;
-        const validatedProducts = [];
+        const lines = [];
+        //Se guarda lo que se va descontando para poder revertir si falla algo
+        const decremented = []; //[{ inventoryId, quantity }]
 
-        for (const item of product) {
-            const { product: productId, quantity, type, color, size } = item;
+        for (const it of items) {
+            const { product: productId, size, color, quantity } = it;
 
-            const dbProduct = await Product.findById(productId);
-            if (!dbProduct) return res.status(404).json({ message: 'Producto no encontrado' });
-
-            const inventory = await inventoryItem.findOne({ type, color, size });
-
-            if (!inventory || inventory.stock < quantity) {
-                return res.status(400).json({ message: `No hay stock para ${type} ${color} ${size}` });
+            // 1. Producto vendible
+            const prod = await Product.findById(productId);
+            if (!prod) {
+                const error = new Error('Producto no encontrado');
+                error.statusCode = 404;
+                //rollback (no hay nada que revertir si es el primero)
+                throw error;
             }
+
+            // 2. Descuento de stock en base a la combinacion 
+            // Stock >= quantity para no dejar stock negativo
+            const inv = await Inventory.findOneAndUpdate(
+                {
+                    category: prod.category,
+                    subcategory: prod.subcategory,
+                    size,
+                    color, 
+                    stock: { $gte: quantity }
+                },
+                { $inc: { stock: -quantity } },
+                { new: true } //devuelve el objeto modificado
+            );
+
+            if (!inv) {
+                // Revertir lo previamente descontado
+                for (const d of decremented) {
+                    try {
+                        await Inventory.findByIdAndUpdate(d.inventoryId, { $inc: { stock: d.quantity } });
+                    } catch {
+                        console.error('Error revertiendo stock', d);
+                    }
+                }
+                const error = new Error(
+                    `Sin stock suficiente para el producto ${prod.name} (talla ${size}, color ${color})`
+                );
+                error.statusCode = 400;
+                throw error;
+            }
+
+            //Registrar lo descontado (para potencial rollback)
+            decremented.push({ inventoryId: inv._id, quantity });
+
+            // 3. Calcular el precio con el pedido del momento
+            totalPrice += prod.price * quantity;
+
+            //4. Linea con el snapshot (+ name y price)
+            lines.push({
+                product: prod._id,
+                name: prod.name,
+                price: prod.price,
+                size,
+                color, //ObjectId del color
+                quantity
+            });
         }
 
-        // Descontar stock
-        inventory.stock -= quantity;
-        await inventory.save();
-
-        validatedProducts.push({
-            product: dbProduct._id,
-            quantity
-        });
-
-        totalPrice += dbProduct.price * quantity;
-
-        const newOrder = new Order({
+        // 5. Crear la orden
+        const order = new Order({
             user,
-            products: validatedProducts,
+            products: lines,
             shippingAdress,
-            totalPrice,
-            status: 'pending'
+            totalPrice
+            //Status es por default 'pending'
         });
 
-        const savedOrder = await newOrder.save();
-        res.status(201).json(savedOrder);
-    } catch (error) {}
+        let saveOrder;
+        try {
+            saveOrder = await order.save();
+        } catch (saveError) {
+            // Si el guardar la orden falla, se revierten los descuentos
+            for (const d of decremented) {
+                try {
+                    await Inventory.findByIdAndUpdate(d.inventoryId, { $inc: { stock: d.quantity } });
+                } catch (_) {
+                    console.error('Error revertiendo stock', d);
+                }
+            }
+            throw saveError;
+        }
+
+        res.status(201).json(saveOrder);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al crear el pedido', error });
+    }
 };
 
 // Obtener todos los pedidos (admin)

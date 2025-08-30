@@ -53,6 +53,10 @@ app.use('/api/colors', colorRoutes);
 const inventoryRoutes = require('./routes/inventoryRoutes');
 app.use('/api/inventory', inventoryRoutes);
 
+//ProductVariant
+const productVariantRoutes = require('./routes/productVariantRoutes');
+app.use('/api/productVariant', productVariantRoutes);
+
 // Manejo de errores
 app.use(errorHandler);
 

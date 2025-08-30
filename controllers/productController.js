@@ -1,5 +1,7 @@
 const upload = require('../middleware/uploadImage');
 const Product = require('../models/product');
+const Inventory = require('../models/inventory');
+const ProductVariant = require('../models/productVariant');
 const { cloudinary, uploadToCloudinary } = require('../utils/cloudinary'); 
 
 //Crear un nuevo producto
@@ -31,53 +33,45 @@ exports.createProduct = async (req, res) => {
 // Obtener todos los productos
 exports.getAllProducts = async (req, res) => {
   try {
-    const { category, subcategory, designType, tags, colors, disponible, sortBy, sortOrder, page, limit } = req.query;
+    const { category, subcategory, tags, sortBy, sortOrder, page=1, limit=10} = req.query;
 
     // Filtros
     const filter = {};
     if (category) filter.category = category;
     if (subcategory) filter.subcategory = subcategory;
-    if (designType) filter.designType = designType;
-    if (tags) {
-      const tagArray = tags.split(',');
-      filter.tags = { $in: tagArray };
-    }
-
-    if (colors) {
-      filter['colors.color'] = colors;
-    }
-
-    // Disponibilidad
-    if (disponible == 'true') {
-      filter['colors.stock'] = { $gt: 0 };
-    }
+    if (tags) filter.tags = { $in: tags.split(',') };
 
     // Ordenamiento
     const sort = {};
-    if (sortBy) {
-      sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
-    }
-
-    // Paginación
-    const pageNumber = Number(page) || 1;
-    const pageSize = Number(limit) || 10;
-    const skip = (pageNumber - 1) * pageSize;
+    if (sortBy) sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    
+    const skip = (Number(page) - 1) * Number(limit);
 
     // Búsqueda en DB con populate
     const products = await Product.find(filter)
       .populate('category', 'name')
       .populate('subcategory', 'name')
-      .populate('colors.color', 'name')
       .sort(sort)
       .skip(skip)
-      .limit(pageSize);
+      .limit(Number(limit));
 
     const total = await Product.countDocuments(filter);
 
+    const withAvailability = await Promise.all(products.map(async (product) => {
+      const sum = await Inventory.aggregate([
+        { $match: { category: product.category._id, subcategory: product.subcategory._id } },
+        { $group: { _id: null, totalStock: { $sum: '$stock' } } }
+      ]);
+      return {
+        ...product.toObject(),
+        totalAvailable: sum[0]?.totalStock || 0
+      };
+    }));
+
     res.json({
-      products,
-      page: pageNumber,
-      totalPages: Math.ceil(total / pageSize),
+      products: withAvailability,
+      page: Number(page),
+      totalPages: Math.ceil(total / Number(limit)),
       totalProducts: total
     });
 
@@ -89,9 +83,20 @@ exports.getAllProducts = async (req, res) => {
 //Obtener un producto por id
 exports.getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id)
+      .populate('category', 'name')
+      .populate('subcategory', 'name');
+    
     if (!product) return res.status(404).json({ error: 'Producto no encontrado' });
-    res.json(product);
+    
+    //Trae el inventario del producto (tallas y colores)
+    const inventory = await Inventory.find({
+      category: product.category._id,
+      subcategory: product.subcategory._id
+    }).populate('color', 'name');
+    
+    res.json({ product, inventory });
+
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener producto', error });
   }
@@ -128,8 +133,20 @@ exports.deleteProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ error: 'Producto no encontrado' });
 
-    await product.remove();
-    res.json({ message: 'Producto eliminado correctamente' });
+    //Eliminar las imagenes de Cloudinary
+    for (const img of product.images) {
+      if (img.publicId) {
+        await cloudinary.uploader.destroy(img.publicId);
+      }
+    }
+
+    // Eliminar variantes asociadas
+    await ProductVariant.deleteMany({ product: product._id });
+
+    //Eliminar el producto de la base de datos
+    await product.deleteOne();
+
+    res.json({ message: 'Producto, imagenes y variantes eliminados correctamente' });
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar producto', error });
   }
@@ -138,31 +155,28 @@ exports.deleteProduct = async (req, res) => {
 //Subir la imagen y agregarla al producto
 exports.addImagesToProduct = async (req, res) => {
   try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Producto no encontrado' });
+
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No se han subido imágenes' });
     }
-
-    const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Producto no encontrado' });
 
     const uploadedImages = await Promise.all(
       req.files.map(file => uploadToCloudinary(file))
     );
 
+    //validar limite de imágenes
     if (product.images.length + uploadedImages.length > 10) {
-      return res.status(400).json({ message: 'No se pueden agregar más de 10 imágenes' });
+      return res.status(400).json({ message: 'No se pueden agregar más de 10 imágenes al producto' });
     }
 
-    const imageUrls = uploadedImages.map(img => img.secure_url);
+    const imageData = uploadedImages.map(img => ({url: img.secure_url, publicId: img.public_id}));
 
-    product.images.push(...imageUrls);
+    product.images.push(...imageData);
     await product.save();
 
-    res.status(200).json({
-      message: 'Imágenes agregadas correctamente', 
-      images: product.images
-    });
-    
+    res.status(200).json({ message: 'Imágenes agregadas correctamente', images: product.images });
   } catch (error) {
     console.error('Error al agregar imágenes al producto:', error);
     res.status(500).json({ message: 'Error al agregar imágenes al producto', details: error });
@@ -178,15 +192,25 @@ exports.uploadImage = async (req, res) => {
   }
 };
 
-exports.removeImageFromProduct = async (req, res) => {
-  const { productId, publicId } = req.params;
+exports.deleteProductImage = async (req, res) => {
+  try {
+    const { productId, publicId } = req.params;
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ message: 'Producto no encontrado' });
 
-  const product = await Product.findById(productId);
-  if (!product) return res.status(404).json({ message: 'Producto no encontrado' });
+    // Buscar la imagen en el producto
+    const imageToDelete = product.images.find(img => img.publicId === publicId);
+    if (!imageToDelete) return res.status(404).json({ message: 'Imagen no encontrada en el producto' });
 
-  product.images = product.images.filter(image => image.publicId !== publicId);
-  await cloudinary.uploader.destroy(publicId);
-  await product.save();
+    // Eliminar la imagen de Cloudinary
+    await cloudinary.uploader.destroy(publicId);
 
-  res.status(200).json({ message: 'Imagen eliminada correctamente', product });
+    // Eliminar la imagen del producto
+    product.images = product.images.filter(img => img.publicId !== publicId);
+    await product.save();
+
+    res.status(200).json({ message: 'Imagen eliminada correctamente', images: product.images });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar imagen del producto', error });
+  }
 };
